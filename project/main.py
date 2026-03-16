@@ -92,8 +92,11 @@ def update_channel_queues(source_channels, uploaded_ids, all_queues):
                 new_videos = _perform_scan(ydl_opts)
             
             if new_videos:
-                all_queues[channel_url] = new_videos + all_queues[channel_url]
-                print(f"   -> Added {len(new_videos)} new videos.")
+                # Reverse to get Oldest -> Newest inside the batch
+                new_videos.reverse()
+                # Append to the end of existing queue
+                all_queues[channel_url] = all_queues[channel_url] + new_videos
+                print(f"   -> Added {len(new_videos)} new videos (Oldest first).")
             else:
                 print("   -> No new videos found.")
         except Exception as e:
