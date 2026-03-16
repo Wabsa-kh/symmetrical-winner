@@ -46,14 +46,12 @@ class Scanner:
         ydl_opts = {
             'extract_flat': True,
             'quiet': True,
-            'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'tv']}}
+            'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'tv']}},
+            # Remove playlistend to scan the entire channel
         }
         
-        # If queue is empty, scan more, else scan just the latest
-        if not current_queue:
-            print("   -> Initial scan for this channel.")
-        else:
-            ydl_opts['playlistend'] = 15
+        # We always scan the full channel now to ensure we don't miss anything
+        # (yt-dlp extract_flat is fast anyway)
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -62,12 +60,21 @@ class Scanner:
                     entries = list(info['entries'])
                     new_urls = []
                     for e in entries:
-                        if e['id'] and e['id'] not in self.uploaded_ids and f"https://www.youtube.com/watch?v={e['id']}" not in current_queue:
-                            new_urls.append(f"https://www.youtube.com/watch?v={e['id']}")
+                        video_id = e.get('id')
+                        # BUG FIX: Ensure it's a valid 11-char YouTube Video ID
+                        # This prevents picking up Channel IDs (which are longer) or other metadata
+                        if video_id and len(video_id) == 11:
+                            video_url = f"https://www.youtube.com/watch?v={video_id}"
+                            if video_id not in self.uploaded_ids and video_url not in current_queue:
+                                new_urls.append(video_url)
+                        elif video_id:
+                            print(f"   -> Skipping non-video entry: {video_id}")
                     
                     if new_urls:
                         print(f"   -> Found {len(new_urls)} new videos.")
                         return new_urls
+                    else:
+                        print("   -> No new videos found.")
         except Exception as e:
             print(f"   ⚠️ Scanner failed for {channel_url}: {e}")
         return []
