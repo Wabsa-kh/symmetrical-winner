@@ -53,9 +53,18 @@ jobs:
         run: |
           git config --global user.name "YouTube-Bot"
           git config --global user.email "bot@github.actions"
-          git add -A
+          
+          # 1. Stage ONLY the specific memory files
+          git add project/database.json project/config.json
+          
+          # 2. Check if there are changes to save
           if ! git diff --staged --quiet; then
             git commit -m "🤖 Sync state and config"
-            git pull --rebase origin main
-            git push
           fi
+          
+          # 3. CRITICAL: Discard all other changes (videos, cache, etc.)
+          git reset --hard
+          
+          # 4. Pull latest and push
+          git pull --rebase origin main
+          git push
