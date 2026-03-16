@@ -1,7 +1,12 @@
 {
-    "uploaded_videos": [],
-    "queues": {},
-    "state": {
-        "last_channel_index": -1
-    }
+  "uploaded_videos": [],
+  "queues": {
+    "https://www.youtube.com/@KDrama-Nest": [
+      "https://www.youtube.com/watch?v=UCGIWc40adMevC05wnfIJnKQ",
+      "https://www.youtube.com/watch?v=UCGIWc40adMevC05wnfIJnKQ"
+    ]
+  },
+  "state": {
+    "last_channel_index": -1
+  }
 }
