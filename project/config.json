@@ -1,11 +1,12 @@
 {
-    "source_channels": [
-        "https://www.youtube.com/@KDrama-Nest"
-    ],
-    "upload_settings": {
-        "category_id": "24",
-        "language": "en",
-        "made_for_kids": false,
-        "privacy_status": "public"
-    }
+  "source_channels": [
+    "https://www.youtube.com/@KDrama-Nest",
+    "https://www.youtube.com/@ExplainerSociety"
+  ],
+  "upload_settings": {
+    "category_id": "24",
+    "language": "en",
+    "made_for_kids": false,
+    "privacy_status": "public"
+  }
 }
