@@ -82,12 +82,12 @@
     "_Bfh7RbNEIE",
     "7qkJ-qXamLE",
     "Rjctk9FIDJM",
-    "GBBlZv9Fdbg"
+    "GBBlZv9Fdbg",
+    "dvacXxzHyeQ"
   ],
   "queues": {
     "https://www.youtube.com/@KDrama-Nest": [],
     "https://www.youtube.com/@ExplainerSociety": [
-      "https://www.youtube.com/watch?v=dvacXxzHyeQ",
       "https://www.youtube.com/watch?v=rFc23trAFek",
       "https://www.youtube.com/watch?v=Vyz6lYjXNwE",
       "https://www.youtube.com/watch?v=sRo93nHvbm0",
@@ -138,6 +138,6 @@
     ]
   },
   "state": {
-    "last_channel_index": 0
+    "last_channel_index": 1
   }
 }
