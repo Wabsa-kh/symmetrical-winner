@@ -100,7 +100,8 @@
     "Fb6wIr4O7HQ",
     "jC3M6KcaPRU",
     "3hsB5074J_I",
-    "EKhpyzxN5rI"
+    "EKhpyzxN5rI",
+    "7bTrLGn-pZs"
   ],
   "queues": {
     "https://www.youtube.com/@KDrama-Nest": [],
@@ -109,7 +110,6 @@
       "https://www.youtube.com/watch?v=XrbAmSRI9uI"
     ],
     "https://www.youtube.com/@saplingzone": [
-      "https://www.youtube.com/watch?v=7bTrLGn-pZs",
       "https://www.youtube.com/watch?v=Pt2v9-hwJxA",
       "https://www.youtube.com/watch?v=Q-xge3bBMps",
       "https://www.youtube.com/watch?v=-mev-7Y_Ljo",
@@ -140,6 +140,6 @@
     ]
   },
   "state": {
-    "last_channel_index": 1
+    "last_channel_index": 2
   }
 }
