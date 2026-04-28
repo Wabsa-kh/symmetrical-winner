@@ -1,8 +1,10 @@
 {
-  "source_channels": [
+  "long_channels": [
     "https://www.youtube.com/@saplingzone",
     "https://www.youtube.com/@psjexplainshindi",
-    "https://www.youtube.com/@ExplainerSociety",
+    "https://www.youtube.com/@KDrama-Nest"
+  ],
+  "short_channels": [
     "https://www.youtube.com/@KDrama-Nest"
   ],
   "upload_settings": {
