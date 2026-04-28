@@ -3,16 +3,33 @@ name: YouTube Clone Bot
 on:
   workflow_dispatch:
     inputs:
-      add_channel:
-        description: 'Add a new YouTube channel URL to track'
+      mode:
+        description: 'Which mode to run'
+        required: true
+        default: 'long'
+        type: choice
+        options:
+          - long
+          - short
+      add_channel_long:
+        description: 'Add URL to Long track'
         required: false
-        default: ''
+      add_channel_short:
+        description: 'Add URL to Shorts track'
+        required: false
+
   schedule:
-    - cron: '0 */3 * * *' # Every 4 hours
+    - cron: '0 */6 * * *' # Run Long track every 6 hours
+    - cron: '30 * * * *'  # Run Shorts track every hour (at XX:30)
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+    # Prevent Long and Short runs from overlapping and causing Git errors
+    concurrency: 
+      group: youtube-bot-sync
+      cancel-in-progress: false
+    
     permissions:
       contents: write
 
@@ -23,48 +40,52 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install Deno
+      - name: Install Deno & FFmpeg
         run: |
           curl -fsSL https://deno.land/x/install/install.sh | sh
           echo "$HOME/.deno/bin" >> $GITHUB_PATH
-
-      - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+          sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Install Dependencies
         run: pip install -r project/requirements.txt
 
       - name: Add New Channel (Manual)
-        if: github.event.inputs.add_channel != ''
+        if: github.event_name == 'workflow_dispatch'
         run: |
-          python -c "import json; f='project/config.json'; d=json.load(open(f)); d['source_channels'].append('${{ github.event.inputs.add_channel }}'); d['source_channels']=list(set(d['source_channels'])); json.dump(d, open(f, 'w'), indent=2)"
+          if [ "${{ github.event.inputs.add_channel_long }}" != "" ]; then
+            python -c "import json; f='project/config.json'; d=json.load(open(f)); d['long_channels'].append('${{ github.event.inputs.add_channel_long }}'); d['long_channels']=list(set(d['long_channels'])); json.dump(d, open(f, 'w'), indent=2)"
+          fi
+          if [ "${{ github.event.inputs.add_channel_short }}" != "" ]; then
+            python -c "import json; f='project/config.json'; d=json.load(open(f)); d['short_channels'].append('${{ github.event.inputs.add_channel_short }}'); d['short_channels']=list(set(d['short_channels'])); json.dump(d, open(f, 'w'), indent=2)"
+          fi
 
-      - name: Run Bot
+      - name: Run Bot (Determining Mode)
         working-directory: project
         env:
           BOT_TOKENS: ${{ secrets.BOT_TOKENS }}
-        run: python main.py
+        run: |
+          # If manual run, use input. If cron, determine by schedule.
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            SELECTED_MODE="${{ github.event.inputs.mode }}"
+          else
+            # If cron is at '0 */6', it's the long track. Otherwise, it's short.
+            # You can also just check the minute.
+            if [ "$(date +%M)" == "00" ]; then SELECTED_MODE="long"; else SELECTED_MODE="short"; fi
+          fi
+          echo "Running in $SELECTED_MODE mode"
+          python main.py --mode $SELECTED_MODE
 
       - name: Save Persistent State
         run: |
           git config --global user.name "YouTube-Bot"
           git config --global user.email "bot@github.actions"
-          
-          # 1. Stage ONLY the specific memory files
           git add project/database.json project/config.json
-          
-          # 2. Check if there are changes to save
           if ! git diff --staged --quiet; then
-            git commit -m "🤖 Sync state and config"
+            git commit -m "🤖 Sync state and config [skip ci]"
+            git pull --rebase origin main
+            git push
           fi
-          
-          # 3. CRITICAL: Discard all other changes (videos, cache, etc.)
-          git reset --hard
-          
-          # 4. Pull latest and push
-          git pull --rebase origin main
-          git push
