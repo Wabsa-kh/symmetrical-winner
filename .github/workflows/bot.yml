@@ -1,106 +1,52 @@
-name: YouTube Clone Bot
+name: 📺 Long Form Bot
 
 on:
-  workflow_dispatch:
-    inputs:
-      mode:
-        description: 'Which mode to run'
-        required: true
-        default: 'long'
-        type: choice
-        options:
-          - long
-          - short
-      add_channel_long:
-        description: 'Add URL to Long track'
-        required: false
-      add_channel_short:
-        description: 'Add URL to Shorts track'
-        required: false
-
   schedule:
-    - cron: '0 */3 * * *' # Run Long track every 6 hours
-    - cron: '0 */2 * * *'  # Run Shorts track every hour (at XX:30)
+    - cron: '0 */6 * * *' # Every 6 hours
+  workflow_dispatch:      # Manual trigger
+
+concurrency: 
+  group: youtube-db-sync
+  cancel-in-progress: false
 
 jobs:
-  run-bot:
+  run-long:
     runs-on: ubuntu-latest
-    # Prevent Long and Short runs from overlapping and causing Git errors
-    concurrency: 
-      group: youtube-bot-sync
-      cancel-in-progress: false
-    
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install Deno & FFmpeg
+      - name: Install Tools (Deno, FFmpeg, Tor)
         run: |
           curl -fsSL https://deno.land/x/install/install.sh | sh
           echo "$HOME/.deno/bin" >> $GITHUB_PATH
-          sudo apt-get update && sudo apt-get install -y ffmpeg
+          sudo apt-get update && sudo apt-get install -y ffmpeg tor
+          sudo service tor start
 
-      - name: Install Dependencies
+      - name: Install Deps
         run: pip install -r project/requirements.txt
 
-      - name: Add New Channel (Manual)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          if [ "${{ github.event.inputs.add_channel_long }}" != "" ]; then
-            python -c "import json; f='project/config.json'; d=json.load(open(f)); d['long_channels'].append('${{ github.event.inputs.add_channel_long }}'); d['long_channels']=list(set(d['long_channels'])); json.dump(d, open(f, 'w'), indent=2)"
-          fi
-          if [ "${{ github.event.inputs.add_channel_short }}" != "" ]; then
-            python -c "import json; f='project/config.json'; d=json.load(open(f)); d['short_channels'].append('${{ github.event.inputs.add_channel_short }}'); d['short_channels']=list(set(d['short_channels'])); json.dump(d, open(f, 'w'), indent=2)"
-          fi
-
-      - name: Run Bot (Determining Mode)
+      - name: Run Long Bot
         working-directory: project
         env:
           BOT_TOKENS: ${{ secrets.BOT_TOKENS }}
-        run: |
-          # If manual run, use input. If cron, determine by schedule.
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            SELECTED_MODE="${{ github.event.inputs.mode }}"
-          else
-            # If cron is at '0 */6', it's the long track. Otherwise, it's short.
-            # You can also just check the minute.
-            if [ "$(date +%M)" == "00" ]; then SELECTED_MODE="long"; else SELECTED_MODE="short"; fi
-          fi
-          echo "Running in $SELECTED_MODE mode"
-          python main.py --mode $SELECTED_MODE
+        run: python main.py --mode long
 
-      - name: Save Persistent State
+      - name: Save State
         run: |
           git config --global user.name "YouTube-Bot"
           git config --global user.email "bot@github.actions"
-          
-          # 1. Stage ONLY the specific memory files we want to keep
           git add project/database.json project/config.json
-          
-          # 2. If there are changes, commit and sync
           if ! git diff --staged --quiet; then
-            git commit -m "🤖 Sync state and config [skip ci]"
-            
-            # 3. CRITICAL: Clean the workspace
-            # This removes the downloaded mp4s and thumbnails so the pull works
+            git commit -m "🤖 Sync Long State [skip ci]"
             git reset --hard HEAD
             git clean -fd
-            
-            # 4. Pull latest changes from GitHub (in case another run finished)
             git pull --rebase origin main
-            
-            # 5. Push the new database/config
             git push
-          else
-            echo "No changes in database or config. Skipping sync."
           fi
