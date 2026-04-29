@@ -2,7 +2,7 @@ name: 📱 Shorts Bot
 
 on:
   schedule:
-    - cron: '0 * * * *' # Every hour
+    - cron: '0 */2 * * *' # Every hour
   workflow_dispatch:
 
 concurrency: 
