@@ -1,0 +1,52 @@
+name: 📱 Shorts Bot
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Every hour
+  workflow_dispatch:
+
+concurrency: 
+  group: youtube-db-sync
+  cancel-in-progress: false
+
+jobs:
+  run-shorts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Tools (Deno, FFmpeg, Tor)
+        run: |
+          curl -fsSL https://deno.land/x/install/install.sh | sh
+          echo "$HOME/.deno/bin" >> $GITHUB_PATH
+          sudo apt-get update && sudo apt-get install -y ffmpeg tor
+          sudo service tor start
+
+      - name: Install Deps
+        run: pip install -r project/requirements.txt
+
+      - name: Run Shorts Bot
+        working-directory: project
+        env:
+          BOT_TOKENS: ${{ secrets.BOT_TOKENS }}
+        run: python main.py --mode short
+
+      - name: Save State
+        run: |
+          git config --global user.name "YouTube-Bot"
+          git config --global user.email "bot@github.actions"
+          git add project/database.json project/config.json
+          if ! git diff --staged --quiet; then
+            git commit -m "🤖 Sync Shorts State [skip ci]"
+            git reset --hard HEAD
+            git clean -fd
+            git pull --rebase origin main
+            git push
+          fi
