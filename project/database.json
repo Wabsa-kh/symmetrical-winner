@@ -286,14 +286,14 @@
     "RE1-9UG_Evk",
     "LqVF76re0uA",
     "cZwoYVKdsLE",
-    "UeCYL4QC5hU"
+    "UeCYL4QC5hU",
+    "ABF7IbFBDFE"
   ],
   "queues": {
     "https://www.youtube.com/@KDrama-Nest#long": [],
     "https://www.youtube.com/@ExplainerSociety#long": [],
     "https://www.youtube.com/@saplingzone#long": [],
     "https://www.youtube.com/@psjexplainshindi#long": [
-      "https://www.youtube.com/watch?v=ABF7IbFBDFE",
       "https://www.youtube.com/watch?v=71UC41xXyT8",
       "https://www.youtube.com/watch?v=6W6GHRvjoS0",
       "https://www.youtube.com/watch?v=MBja8YCiow4",
@@ -973,6 +973,6 @@
   "state": {
     "last_channel_index": 3,
     "last_short_index": 0,
-    "last_long_index": 0
+    "last_long_index": 1
   }
 }
