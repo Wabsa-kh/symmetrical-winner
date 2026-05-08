@@ -396,11 +396,11 @@
     "42UJY0SBwq8",
     "UtiNSvBNa8k",
     "orW745G6dgc",
-    "iBCADl-4t0M"
+    "iBCADl-4t0M",
+    "6ALQKFo05GQ"
   ],
   "queues": {
     "https://www.youtube.com/@KDrama-Nest#long": [
-      "https://www.youtube.com/watch?v=6ALQKFo05GQ",
       "https://www.youtube.com/watch?v=EVCrEFPH3M8"
     ],
     "https://www.youtube.com/@ExplainerSociety#long": [],
@@ -993,6 +993,6 @@
   "state": {
     "last_channel_index": 3,
     "last_short_index": 0,
-    "last_long_index": 1
+    "last_long_index": 2
   }
 }
