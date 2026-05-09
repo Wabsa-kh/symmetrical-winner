@@ -411,7 +411,8 @@
     "LMJuk8nJ2u8",
     "1fFpqk4Hb5k",
     "YzeKmLlnRXE",
-    "_VlfvohgGJQ"
+    "_VlfvohgGJQ",
+    "f-1iyAC2CIg"
   ],
   "queues": {
     "https://www.youtube.com/@KDrama-Nest#long": [],
@@ -804,7 +805,6 @@
       "https://www.youtube.com/watch?v=pyD4w3bgziM"
     ],
     "https://www.youtube.com/@KDrama-Nest#short": [
-      "https://www.youtube.com/watch?v=f-1iyAC2CIg",
       "https://www.youtube.com/watch?v=e4sHGfv2OYo",
       "https://www.youtube.com/watch?v=IQ484ZAD4w8",
       "https://www.youtube.com/watch?v=V6lZb2g1K-s",
@@ -992,7 +992,7 @@
   },
   "state": {
     "last_channel_index": 3,
-    "last_short_index": 1,
+    "last_short_index": 0,
     "last_long_index": 1
   }
 }
