@@ -439,7 +439,12 @@
     "05PVUhdG5Lw"
   ],
   "queues": {
-    "https://www.youtube.com/@KDrama-Nest#long": [],
+    "https://www.youtube.com/@KDrama-Nest#long": [
+      "https://www.youtube.com/watch?v=rvcZxyyY3Bw",
+      "https://www.youtube.com/watch?v=h2fktd82S0M",
+      "https://www.youtube.com/watch?v=Ead74xhvKvY",
+      "https://www.youtube.com/watch?v=Tvc33oR4v-U"
+    ],
     "https://www.youtube.com/@ExplainerSociety#long": [],
     "https://www.youtube.com/@saplingzone#long": [],
     "https://www.youtube.com/@psjexplainshindi#long": [
