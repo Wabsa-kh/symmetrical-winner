@@ -484,7 +484,8 @@
     "IKF9u7RiEEc",
     "n7JxZBbeoBI",
     "Qn63SLsf14o",
-    "1TA3kMA_o5w"
+    "1TA3kMA_o5w",
+    "hmZAeZhkEdI"
   ],
   "queues": {
     "https://www.youtube.com/@KDrama-Nest#long": [],
@@ -1012,6 +1013,6 @@
   "state": {
     "last_channel_index": 3,
     "last_short_index": 1,
-    "last_long_index": 1
+    "last_long_index": 0
   }
 }
