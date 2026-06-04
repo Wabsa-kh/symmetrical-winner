@@ -512,11 +512,11 @@
     "BBnrfb8w5Sw",
     "Uytf8YU_XgQ",
     "SLKw3iVvNbs",
-    "k_oqjok41Wc"
+    "k_oqjok41Wc",
+    "_R42iIyy1H8"
   ],
   "queues": {
     "https://www.youtube.com/@KDrama-Nest#long": [
-      "https://www.youtube.com/watch?v=_R42iIyy1H8",
       "https://www.youtube.com/watch?v=wQ1R1okm_Zs",
       "https://www.youtube.com/watch?v=kypElmchDYc"
     ],
@@ -1914,6 +1914,6 @@
   "state": {
     "last_channel_index": 3,
     "last_short_index": 1,
-    "last_long_index": 1
+    "last_long_index": 2
   }
 }
