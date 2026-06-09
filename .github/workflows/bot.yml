@@ -2,8 +2,8 @@ name: 📺 Long Form Bot
 
 on:
   schedule:
-    - cron: '0 */23 * * *' # Every 6 hours
-  workflow_dispatch:      # Manual trigger
+#    - cron: '0 */23 * * *' # Every 6 hours
+#  workflow_dispatch:      # Manual trigger
 
 concurrency: 
   group: youtube-db-sync
