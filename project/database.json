@@ -530,11 +530,11 @@
     "pyQ4YVzHknY",
     "G5moRIdiZJk",
     "2EHBYFHXPGA",
-    "5ErT8k0Kc_g"
+    "5ErT8k0Kc_g",
+    "kypElmchDYc"
   ],
   "queues": {
     "https://www.youtube.com/@KDrama-Nest#long": [
-      "https://www.youtube.com/watch?v=kypElmchDYc",
       "https://www.youtube.com/watch?v=fXsawDzdJJc"
     ],
     "https://www.youtube.com/@ExplainerSociety#long": [],
@@ -1914,12 +1914,15 @@
       "https://www.youtube.com/watch?v=ojG62M8nsMk",
       "https://www.youtube.com/watch?v=tEQS3JL1WJ4",
       "https://www.youtube.com/watch?v=1DS7FOZqeQY",
-      "https://www.youtube.com/watch?v=aRtIVazyxIw"
+      "https://www.youtube.com/watch?v=aRtIVazyxIw",
+      "https://www.youtube.com/watch?v=u6C9lXZn3zA",
+      "https://www.youtube.com/watch?v=nQVrdeuTJ7g",
+      "https://www.youtube.com/watch?v=TjOmP5oEUUE"
     ]
   },
   "state": {
     "last_channel_index": 3,
     "last_short_index": 1,
-    "last_long_index": 1
+    "last_long_index": 2
   }
 }
