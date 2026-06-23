@@ -133,47 +133,72 @@ def sort_queue_by_popularity(urls, stats_cache):
 # ==========================================
 # 1. SCANNER (Uses Unique Keys)
 # ==========================================
-def update_channel_queues(channel_urls, uploaded_ids, all_queues, is_shorts=False):
+def rescan_channel(channel_url, queue_key, uploaded_ids, queue, rebuild=False):
+    """
+    Fetch the channel's video/shorts list with yt-dlp and return a queue list.
+    - rebuild=False (incremental): append newly discovered, non-uploaded videos
+      to the existing queue, preserving order (oldest-first).
+    - rebuild=True: discard the existing queue and rebuild it fresh from the
+      channel, still excluding any video already in uploaded_ids.
+
+    Never touches uploaded_ids (read-only). Returns the new queue list.
+    """
+    base_url = channel_url.rstrip("/")
+    is_shorts = queue_key.endswith("#short")
+    scan_url = f"{base_url}/shorts" if is_shorts else f"{base_url}/videos"
+
+    # Cookies MUST be on the opts dict before YoutubeDL() is constructed,
+    # otherwise they're silently ignored (this is what caused missed videos).
+    ydl_opts = {
+        'extract_flat': True,
+        'quiet': True,
+        'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'tv']}}
+    }
+    if os.path.exists(COOKIES_FILE):
+        ydl_opts['cookiefile'] = COOKIES_FILE
+
+    new_queue = [] if rebuild else list(queue)
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(scan_url, download=False)
+            if 'entries' not in info:
+                return new_queue
+
+            entries = list(info['entries'])
+            entries.reverse()  # Oldest to Newest
+            new_count = 0
+            for e in entries:
+                video_id = e.get('id')
+                if not video_id:
+                    continue
+                video_url = f"https://www.youtube.com/watch?v={video_id}"
+
+                # Exclude anything already uploaded — both in rebuild and
+                # incremental mode (belt-and-suspenders prune of stale entries).
+                if video_id in uploaded_ids:
+                    continue
+                if video_url not in new_queue:
+                    new_queue.append(video_url)
+                    new_count += 1
+            print(f"   -> {'Rebuilt' if rebuild else 'Found'} with {new_count} {'fresh' if rebuild else 'new'} videos.")
+    except Exception as e:
+        print(f"   ❌ Scan failed: {e}")
+
+    return new_queue
+
+def update_channel_queues(channel_urls, uploaded_ids, all_queues, is_shorts=False, rebuild=False):
     mode_suffix = "#short" if is_shorts else "#long"
-    
+
     for channel_url in channel_urls:
         queue_key = f"{channel_url}{mode_suffix}"
-        print(f"🔍 SCANNING: {queue_key}")
-        
-        base_url = channel_url.rstrip("/")
-        scan_url = f"{base_url}/shorts" if is_shorts else f"{base_url}/videos"
+        action = "🔄 REBUILDING" if rebuild else "🔍 SCANNING"
+        print(f"{action}: {queue_key}")
 
-        if queue_key not in all_queues:
-            all_queues[queue_key] = []
+        existing = all_queues.get(queue_key, [])
+        all_queues[queue_key] = rescan_channel(
+            channel_url, queue_key, uploaded_ids, existing, rebuild=rebuild)
 
-        ydl_opts = {
-            'extract_flat': True,
-            'quiet': True,
-            'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'tv']}}
-        }
-        
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                if os.path.exists(COOKIES_FILE): ydl_opts['cookiefile'] = COOKIES_FILE
-                
-                info = ydl.extract_info(scan_url, download=False)
-                if 'entries' in info:
-                    new_count = 0
-                    entries = list(info['entries'])
-                    entries.reverse() # Oldest to Newest
-                    
-                    for e in entries:
-                        video_id = e.get('id')
-                        video_url = f"https://www.youtube.com/watch?v={video_id}"
-                        
-                        # Master check: Not uploaded AND not already in THIS specific queue
-                        if video_id and video_id not in uploaded_ids and video_url not in all_queues[queue_key]:
-                            all_queues[queue_key].append(video_url)
-                            new_count += 1
-                    print(f"   -> Found {new_count} new videos.")
-        except Exception as e:
-            print(f"   ❌ Scan failed: {e}")
-            
     return all_queues
 
 # ==========================================
@@ -304,6 +329,8 @@ if __name__ == "__main__":
     # Resolve sort order: CLI override > config > default ("date")
     default_sort = config.get('upload_settings', {}).get('sort_by', 'date')
     parser.add_argument('--sort', choices=['date', 'popularity'], default=default_sort)
+    parser.add_argument('--rebuild', action='store_true',
+                        help="Wipe each queue for this mode and re-scrape every channel fresh (still excludes uploaded videos) before sorting/uploading")
     parser.add_argument('--dry-run', action='store_true',
                         help="Scan + sort the queues, print the upload order, then exit without downloading/uploading")
     args = parser.parse_args()
@@ -312,11 +339,14 @@ if __name__ == "__main__":
     channel_list = config.get(f'{mode}_channels', [])
     is_shorts = (mode == 'short')
     sort_by = args.sort
+    rebuild = args.rebuild
 
-    print(f"⚙️  Mode: {mode.upper()} | Sort: {sort_by}")
+    print(f"⚙️  Mode: {mode.upper()} | Sort: {sort_by} | Rebuild: {rebuild}")
 
-    # 1. Update active mode queue
-    database['queues'] = update_channel_queues(channel_list, database['uploaded_videos'], database['queues'], is_shorts=is_shorts)
+    # 1. Update active mode queue (full rebuild from channels if --rebuild)
+    database['queues'] = update_channel_queues(
+        channel_list, database['uploaded_videos'], database['queues'],
+        is_shorts=is_shorts, rebuild=rebuild)
 
     # 1b. Re-sort queues by popularity if requested (date order left untouched)
     if sort_by == 'popularity':

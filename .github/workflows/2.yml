@@ -14,8 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -42,11 +40,12 @@ jobs:
         run: |
           git config --global user.name "YouTube-Bot"
           git config --global user.email "bot@github.actions"
+          # Pull remote first so we never overwrite a concurrent bot commit
+          git stash -u || true
+          git pull --rebase origin main || true
+          git stash pop || true
           git add project/database.json project/config.json
           if ! git diff --staged --quiet; then
             git commit -m "🤖 Sync Shorts State [skip ci]"
-            git reset --hard HEAD
-            git clean -fd
-            git pull --rebase origin main
-            git push
+            git push origin main
           fi
