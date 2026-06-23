@@ -149,10 +149,17 @@ def rescan_channel(channel_url, queue_key, uploaded_ids, queue, rebuild=False):
 
     # Cookies MUST be on the opts dict before YoutubeDL() is constructed,
     # otherwise they're silently ignored (this is what caused missed videos).
+    # - 'youtube' args apply to single-video extraction (download + stats)
+    # - 'youtubetab' args apply to channel tab scanning (/videos, /shorts).
+    #   skip=authcheck prevents the "Playlists that require authentication"
+    #   error that aborts scanning some channels (e.g. @KDrama-Nest) with a 404.
     ydl_opts = {
         'extract_flat': True,
         'quiet': True,
-        'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'tv']}}
+        'extractor_args': {
+            'youtube': {'player_client': ['ios', 'android', 'tv']},
+            'youtubetab': {'skip': 'authcheck'},
+        }
     }
     if os.path.exists(COOKIES_FILE):
         ydl_opts['cookiefile'] = COOKIES_FILE
@@ -359,7 +366,10 @@ if __name__ == "__main__":
             all_urls.extend(database['queues'].get(queue_key, []))
         if all_urls:
             print(f"📊 Fetching view counts for {len(all_urls)} queued videos...")
+            known_before = len(stats_cache)
             fetch_video_stats(all_urls, primary_account, stats_cache)
+            print(f"   ✅ View counts available for {len(stats_cache)}/{len(all_urls)} videos"
+                  f" (+{len(stats_cache) - known_before} new lookups).")
             for ch in channel_list:
                 queue_key = f"{ch}{'#short' if is_shorts else '#long'}"
                 if database['queues'].get(queue_key):
