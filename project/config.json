@@ -12,6 +12,7 @@
     "category_id": "24",
     "language": "en",
     "made_for_kids": false,
-    "privacy_status": "public"
+    "privacy_status": "public",
+    "sort_by": "date"
   }
 }

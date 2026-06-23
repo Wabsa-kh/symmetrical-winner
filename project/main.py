@@ -17,6 +17,14 @@ DATABASE_FILE = "database.json"
 TOKENS_FILE = "tokens.json"
 COOKIES_FILE = "cookies.txt"
 
+# How many videos a single videos().list call accepts (YouTube API limit)
+STATS_BATCH_SIZE = 50
+
+def extract_video_id(url):
+    """Pull the 11-char video id out of any YouTube URL shape we use."""
+    m = re.search(r'(?:v=|/shorts/|youtu\.be/)([\w-]{11})', url or '')
+    return m.group(1) if m else None
+
 # ==========================================
 # UTILS & MIGRATION
 # ==========================================
@@ -65,6 +73,62 @@ def get_auth_service(account):
         client_secret=account['client_secret']
     )
     return build('youtube', 'v3', credentials=creds)
+
+# ==========================================
+# POPULARITY SORT
+# ==========================================
+def fetch_video_stats(urls, account, stats_cache):
+    """
+    Look up view counts for every video URL using the YouTube Data API
+    (videos().list with part=statistics, 50 IDs per call). Results are
+    cached in stats_cache {video_id: view_count} so re-sorts across runs
+    are cheap and don't burn quota on already-known videos.
+    """
+    to_fetch = []
+    url_by_id = {}
+    for url in urls:
+        vid = extract_video_id(url)
+        if not vid:
+            continue
+        url_by_id[vid] = url
+        if str(stats_cache.get(vid)) not in (None, 'None'):
+            continue
+        to_fetch.append(vid)
+
+    if not to_fetch or not account:
+        return stats_cache
+
+    youtube = get_auth_service(account)
+    for i in range(0, len(to_fetch), STATS_BATCH_SIZE):
+        batch = to_fetch[i:i + STATS_BATCH_SIZE]
+        try:
+            resp = youtube.videos().list(
+                part='statistics', id=','.join(batch)
+            ).execute()
+            returned = set()
+            for item in resp.get('items', []):
+                vid = item['id']
+                views = int(item.get('statistics', {}).get('viewCount', 0))
+                stats_cache[vid] = views
+                returned.add(vid)
+            # Videos with no public stats (deleted/private) -> treat as 0
+            for vid in batch:
+                if vid not in returned:
+                    stats_cache[vid] = 0
+        except HttpError as e:
+            print(f"   ⚠️ Stats lookup failed (batch {i//STATS_BATCH_SIZE}): {e}")
+            break
+        except Exception as e:
+            print(f"   ⚠️ Stats lookup error: {e}")
+            break
+    return stats_cache
+
+def sort_queue_by_popularity(urls, stats_cache):
+    """Sort URLs highest-views-first. Missing stats sort last (stable)."""
+    def key(url):
+        vid = extract_video_id(url)
+        return stats_cache.get(vid, -1)
+    return sorted(urls, key=key, reverse=True)
 
 # ==========================================
 # 1. SCANNER (Uses Unique Keys)
@@ -229,22 +293,70 @@ def process_track(mode, channel_list, database, tokens, settings):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['long', 'short'], required=True)
-    args = parser.parse_args()
 
     config = load_json(CONFIG_FILE)
     database = load_json(DATABASE_FILE, {"uploaded_videos": [], "queues": {}, "state": {}})
-    
+
     tokens = {"accounts": []}
     if os.path.exists(TOKENS_FILE): tokens = load_json(TOKENS_FILE)
     elif os.environ.get("BOT_TOKENS"): tokens = json.loads(os.environ.get("BOT_TOKENS"))
 
+    # Resolve sort order: CLI override > config > default ("date")
+    default_sort = config.get('upload_settings', {}).get('sort_by', 'date')
+    parser.add_argument('--sort', choices=['date', 'popularity'], default=default_sort)
+    parser.add_argument('--dry-run', action='store_true',
+                        help="Scan + sort the queues, print the upload order, then exit without downloading/uploading")
+    args = parser.parse_args()
+
     mode = args.mode
     channel_list = config.get(f'{mode}_channels', [])
     is_shorts = (mode == 'short')
+    sort_by = args.sort
+
+    print(f"⚙️  Mode: {mode.upper()} | Sort: {sort_by}")
 
     # 1. Update active mode queue
     database['queues'] = update_channel_queues(channel_list, database['uploaded_videos'], database['queues'], is_shorts=is_shorts)
+
+    # 1b. Re-sort queues by popularity if requested (date order left untouched)
+    if sort_by == 'popularity':
+        # Persist view counts so subsequent runs don't re-query the same videos
+        stats_cache = database.setdefault('video_stats', {})
+        primary_account = (tokens.get('accounts') or [None])[0]
+        all_urls = []
+        for ch in channel_list:
+            queue_key = f"{ch}{'#short' if is_shorts else '#long'}"
+            all_urls.extend(database['queues'].get(queue_key, []))
+        if all_urls:
+            print(f"📊 Fetching view counts for {len(all_urls)} queued videos...")
+            fetch_video_stats(all_urls, primary_account, stats_cache)
+            for ch in channel_list:
+                queue_key = f"{ch}{'#short' if is_shorts else '#long'}"
+                if database['queues'].get(queue_key):
+                    before = database['queues'][queue_key][0]
+                    database['queues'][queue_key] = sort_queue_by_popularity(
+                        database['queues'][queue_key], stats_cache)
+                    after = database['queues'][queue_key][0]
+                    mark = " (changed)" if before != after else ""
+                    print(f"   ↕️  Sorted {queue_key}: {len(database['queues'][queue_key])} videos{mark}")
+
     save_json(DATABASE_FILE, database)
+
+    # 1c. Dry-run: show what *would* upload next, then stop
+    if args.dry_run:
+        print("\n📋 Dry run — next upload order per channel:")
+        for ch in channel_list:
+            queue_key = f"{ch}{'#short' if is_shorts else '#long'}"
+            q = database['queues'].get(queue_key, [])
+            print(f"\n  {queue_key}  ({len(q)} queued)")
+            for url in q[:5]:
+                vid = extract_video_id(url)
+                views = database.get('video_stats', {}).get(vid, 'n/a')
+                print(f"     • {url}   views={views}")
+            if len(q) > 5:
+                print(f"     … and {len(q)-5} more")
+        print("\n🚫 Dry run complete — nothing was uploaded.")
+        sys.exit(0)
 
     # 2. Process active mode video
     success = process_track(mode, channel_list, database, tokens, config['upload_settings'])
